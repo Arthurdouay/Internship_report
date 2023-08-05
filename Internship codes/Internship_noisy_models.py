@@ -166,66 +166,6 @@ def rate(rate_window,T,t0,N,spikes):
     else:
         return np.size(spikes)/rate_window
 
-##-----------------------------------------------------------------------------------------------------
-#Finding a link between firing rate and mean
-
-ratesvect = np.zeros(110)
-
-Ivect = np.linspace(-1000,10000,110)
-
-for j in range(-10,100):
-    I0 = j*100
-
-    u, spikesintf = Eulerintf(u0,ur,thr,I0,np.zeros(N))
-
-    ratesvect[j+10] = rate(0.5,0.5,0,N,spikesintf)
-
-#sigmoidal curve as expected
-fig3 = plt.figure(3)
-ax3 = plt.gca()
-plt.clf()
-plt.plot(Ivect,ratesvect, color = "red", label = "integrate and fire model")
-plt.title("Firing rate depending on $I_0$")
-plt.xlabel("$I_0$ in mA")
-plt.ylabel("firing rate in Hz")
-plt.show()
-
-
-
-#-------------------------------------------------------------------------------------------------------
-##Finding a link between firing rate and sd
-
-ratesvect = np.zeros(100)
-
-sdvect = np.linspace(0,10000,100)
-
-rate_window = 0.5
-l = int(rate_window/dti)
-
-for k in range(0,10000,100):
-    if k == 0:
-        sd = 1
-    else:
-        sd = k
-
-    meanrates = np.zeros(50)
-    for l in range(50):
-        I = np.random.normal(0,sd,N)
-        u, spikesintf = Eulerintf(u0,ur,thr,0,I)
-        meanrates[l] = rate(0.5,0.5,0,N,spikesintf)
-
-
-    ratesvect[int(k/100)] = np.mean(meanrates)
-
-
-fig4 = plt.figure(4)
-plt.clf()
-plt.plot(sdvect, ratesvect, color = "red", label = "integrate and fire model")
-plt.title("firing rate depending on sd")
-plt.xlabel("sd")
-plt.ylabel("firing rate in Hz")
-plt.show()
-
 
 
 

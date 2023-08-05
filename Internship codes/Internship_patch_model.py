@@ -151,43 +151,6 @@ cost, pos = optimizer.optimize(diff_func, 1000)
 
 print(cost, pos)
 
-"""
-##Threshold to fit the curve
-
-def sigm_thr(x,V):
-    V = np.atleast_1d(V)
-    Vreturn = np.zeros(np.size(V))
-    for k in range(np.size(V)):
-        if V[k] >= 1.0:
-           Vreturn[k] = x[5]/((x[0] + x[1]*np.log(np.abs(x[2]*V[k]/(x[3]*V[k] - x[4]))))**x[6])
-        else:
-            Vreturn[k] = 0
-    return Vreturn
-
-nbr_particles = 50
-
-
-def diff_func_thr(x):
-    sigm_thr_vect = np.zeros((nbr_particles,np.size(Vbar_vect)))
-    difference = np.zeros(nbr_particles)
-    for i in range(nbr_particles):
-        for k,Vbar in enumerate(Vbar_vect):
-            sigm_thr_vect[i,k] = sigm_thr(x[i,:],Vbar)
-
-    for i in range(nbr_particles):
-        difference[i] = np.max(np.abs(firing_rate*10**-3/m - sigm_thr_vect[i,:]))
-    return difference
-
-
-x_max = 2*np.ones(5)
-x_min = -1*x_max
-bounds = (x_min,x_max)
-options = {'c1':0.7, 'c2':0.3, 'w':0.9}
-optimizer = GlobalBestPSO(n_particles = nbr_particles, dimensions = 7, options = options)
-
-cost, pos_thr = optimizer.optimize(diff_func_thr, 500)
-"""
-
 ##Load saved curve and fit
 
 firing_rate = np.loadtxt("Curve_data.txt")
@@ -202,8 +165,8 @@ def sigm(x,V):
 ##plot
 plt.figure()
 plt.clf()
-#plt.plot(Vbar_vect,firing_rate*10**-3/m*50, color = "blue", label = "$S[\overline{V}(t)]$")
-#plt.plot(Vbar_vect, sigm_thr(pos_thr,Vbar_vect)*50, color = "darkgreen", label = "sigmoid fit with threshold")
+plt.plot(Vbar_vect,firing_rate*10**-3/m*50, color = "blue", label = "$S[\overline{V}(t)]$")
+plt.plot(Vbar_vect, sigm_thr(pos_thr,Vbar_vect)*50, color = "darkgreen", label = "sigmoid fit with threshold")
 plt.plot(Vbar_vect, sigm(pos,Vbar_vect)*50, color = "orange", label = "sigmoid fit")
 plt.plot(Vbar_vect,Vbar_vect, color = "red", label = "$\overline{V}$")
 plt.xlabel("Average dendritic current")
@@ -211,20 +174,6 @@ plt.ylabel("Average firing rate")
 plt.title("Average firing rate depending on average dendritic current")
 plt.legend()
 plt.show()
-
-##Why isn't Vbar smooth enough ?
-plt.figure()
-plt.clf()
-plt.plot(time,U[0,:], color = "blue", label = "neuron 0")
-plt.plot(time,U[20,:], color = "red", label = "neuron 20" )
-plt.plot(time,U[60,:], color = "green", label = "neuron 60")
-plt.plot(time,U[100,:], color = "purple", label = "neuron 100")
-plt.legend()
-plt.title("Les plateaux ?")
-plt.show()
-
-
-
 ##Study of Vbar
 tau = 10**-1       #s
 
@@ -317,38 +266,6 @@ plt.legend()
 plt.title("Evolution of dendritic current with $V_0$ = " + str(Vbari))
 plt.show()
 
-##measure of neuron synchrony
-
-"""
-U_bar_var = []
-U_var = []
-
-m_min = 100
-m_max = 500
-m_step = 10
-Vbari = 10
-
-for m_loop in range(m_min,m_max,m_step):
-    U0 = -80*10**-3*np.ones(m_loop) + 80*10**-3*np.random.rand(m_loop)
-    U = VbarODE_1(Vbari*np.ones(m_loop) + np.random.normal(0,1,m_loop), U0, 10**-9/C, g, sd)[1]
-    Ubar = np.mean(U, axis = 0)                                                  #calcul de Vbar
-    U_bar_var.append(np.mean(Ubar**2) - np.mean(Ubar)**2)                        #calcul de la variance
-    U_var.append(np.mean(U**2,axis = 1) - np.mean(U, axis=1)**2)
-
-synch = np.zeros(len(U_bar_var))
-
-for k in range(np.size(synch)):
-    synch[k] = U_bar_var[k]/np.mean(U_var[k])
-
-plt.figure()
-plt.clf()
-plt.plot(np.linspace(m_min,m_max,int(m_max-m_min/m_step)), np.sqrt(synch))
-plt.title("measure of synchrony depending on the number of neurons")
-plt.xlabel("number of neurons")
-plt.ylabel("measure of synchrony")
-plt.show()
-
-"""
 ##Raster plot
 
 plt.figure()
@@ -390,76 +307,6 @@ for col in colors:
     plt.plot(time, VbarODE_1(np.random.normal(fu,1,m),U0,10**-9/C, g, sd)[0], color = col)
 plt.title("10 trajectories with random initial condition around "  + str(fu))
 plt.show()
-
-##Random coupling of neurons
-tau = 10**-1       #s
-Vbar = 4
-U0 = np.random.normal(ur,10**-2,1000)
-V0 = np.random.normal(Vbar, 1, 1000)
-
-
-def Vbar_coupled(V0, U0, g1, g, sd, p):                      #Computation of Vbar with equation (1)
-    dt = T/N
-    m_ode = np.size(U0)
-    spikes = np.zeros((m_ode,N))           #accounts for the number of spikes at each time period
-    l = max(1,int(dabs/dt))            #translation of absolute refractory period in dt iterations (returns 1 in case int(dabs/dt) is zero st the program runs)
-    spikes_countdown = np.zeros(m_ode)
-    tk = t0
-
-    K = np.random.binomial(1,p,(m_ode,m_ode))                       #random coupling matrix (Erdös-Renyi)
-
-    random_thr = np.random.normal(thr,5*10**-3,m)
-
-    #membrane potential (calculated at each time st it depends on Vbar(t))
-    U = np.zeros((m_ode,N))
-    V = np.zeros((m_ode,N))
-    V[:,0] = V0
-    U[:,0] = U0
-    Vbar = np.zeros(N)
-    Vbar[0] = np.mean(V0)
-    V_index = 1
-
-    for k in range(1,N):
-        for j in range(m_ode):
-            if spikes_countdown[j] != 0:
-                U[j,k] = ur
-                spikes_countdown[j] += -1
-
-
-            else :
-                if U[j,k-1] > random_thr[j]:
-                    U[j,k] = ur
-                    spikes_countdown[j] = l
-                    spikes[j,k] = 1
-
-                else :
-                    In = np.random.normal(0,sd(t0 + k*dt),1)                                     #centered noise current inside this neuron
-                    U[j,k] = U[j,k-1] + dt*(-1/tm*g(U[j,k-1]) + g1*V[j,k-1]) + g1*np.sqrt(dt)*In
-
-        for j in range(m_ode):
-            V[j,k] = V[j,k-1] + dt*(-V[j,k-1]/tau + 0.1*np.sum(K[:,j]*spikes[:,k-1])/(tau))      #Computing V_is individually (how to put the right scaling factor ?)
-
-    return np.mean(V, axis = 0), U, spikes                           #this returns the average dendritic current
-
-
-
-Vp = np.zeros(100)
-for i,p in enumerate(np.linspace(0,1,100)):
-    Vp[i] = Vbar_coupled(V0,U0,10**-9/C,g,sd,p)[0][-1]
-    print(i)
-
-plt.figure()
-plt.clf()
-plt.plot(np.linspace(0,1,100), Vp)
-plt.title(r"Average dendritic current in stationary state for $p \in [ 0,1 ]$" )
-plt.xlabel("p")
-plt.ylabel("Average dendritic current")
-plt.show()
-
-
-
-
-
 
 
 

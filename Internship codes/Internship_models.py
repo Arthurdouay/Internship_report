@@ -151,42 +151,6 @@ plt.show()
 
 
 
-##firing rate function and plot
-
-
-rate_window = 0.25
-#translation of rate_window in terms of dt iterations
-l = int(rate_window/dti)
-
-
-def rate(rate_window,T,t0,N,spikes):
-    rate = np.zeros(N-l)
-    dt = T/N
-
-    for m in range(N-l):
-        rate[m] = np.count_nonzero((spikes > t0 + m*dt)*(spikes < t0 + (m+l)*dt))/rate_window
-
-    tspikes = np.linspace(t0,t0 + (N-l)*dt, N-l)
-
-    return tspikes, rate
-
-
-u, spikesintf = RK2intfire()
-
-
-fig3 = plt.figure(3)
-plt.clf()
-plt.plot(rate(rate_window,Ti,t0,N,spikesintf)[0], rate(rate_window,Ti,t0,N,spikesintf)[1])
-plt.xlabel("time in ms")
-plt.ylabel("firing rate in Hz")
-plt.title("firing rate")
-plt.show()
-
-
-
-
-
-
 
 
 
